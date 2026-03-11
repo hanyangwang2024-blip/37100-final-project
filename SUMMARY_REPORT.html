@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Diffusion Timesteps and Prediction Targets</title>
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; max-width: 860px; margin: 40px auto; padding: 0 20px; line-height: 1.7; color: #1a1a1a; background: #fff; }
+    h1 { font-size: 1.8em; border-bottom: 2px solid #2563eb; padding-bottom: 8px; color: #1e293b; }
+    h2 { font-size: 1.35em; color: #334155; margin-top: 2em; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+    h3 { font-size: 1.1em; color: #475569; }
+    table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.92em; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; }
+    th { background: #f1f5f9; font-weight: 600; }
+    tr:nth-child(even) { background: #f8fafc; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    strong { color: #0f172a; }
+    hr { border: none; border-top: 1px solid #e2e8f0; margin: 2em 0; }
+    ul, ol { padding-left: 1.5em; }
+    li { margin-bottom: 0.3em; }
+    p { margin: 0.8em 0; }
+    blockquote { border-left: 3px solid #2563eb; margin: 1em 0; padding: 0.5em 1em; background: #eff6ff; color: #1e40af; }
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">Diffusion Timesteps and Prediction Targets</h1>
+</header>
+<h1
+id="diffusion-timesteps-and-prediction-targets-a-two-knob-study-on-mnist">Diffusion
+Timesteps and Prediction Targets: A Two-Knob Study on MNIST</h1>
+<p>DATA 37100 — Final Project Summary Report</p>
+<hr />
+<h2 id="question-motivation">1. Question &amp; Motivation</h2>
+<p><strong>Core question:</strong> How do diffusion timestep count (T)
+and prediction target (eps vs x0) jointly affect training loss dynamics
+and sample quality on MNIST?</p>
+<p>Denoising Diffusion Probabilistic Models (DDPMs) have two fundamental
+design choices that interact in non-obvious ways: the number of
+diffusion timesteps T (controlling the granularity of the noise
+schedule) and the prediction target (whether the network predicts the
+added noise ε or the clean image x₀). While both are well-studied
+independently, their <em>interaction</em> under limited training budgets
+is less understood.</p>
+<p>This project investigates this interaction through a controlled 3×2
+grid experiment, complemented by a Transformer character-LM baseline to
+satisfy the two-model-family requirement.</p>
+<hr />
+<h2 id="methods">2. Methods</h2>
+<h3 id="models">Models</h3>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 20%" />
+<col style="width: 33%" />
+<col style="width: 28%" />
+</colgroup>
+<thead>
+<tr>
+<th>Model</th>
+<th>Family</th>
+<th>Architecture</th>
+<th>Key config</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DDPM</td>
+<td>Diffusion</td>
+<td>UNet, base_ch=64, time_emb=128</td>
+<td>Linear β schedule (0.0001→0.02)</td>
+</tr>
+<tr>
+<td>Tiny GPT</td>
+<td>Transformer</td>
+<td>d_model=128, 4 heads, 2 layers</td>
+<td>Char-level LM, 37-char vocab</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dataset">Dataset</h3>
+<p><strong>MNIST</strong> (60,000 training images, 28×28 grayscale).
+Chosen for fast iteration (~45s per diffusion run on Apple MPS) and
+well-understood visual failure modes.</p>
+<h3 id="controlled-experiment-design">Controlled Experiment Design</h3>
+<p><strong>Knob 1:</strong> T ∈ {100, 200, 400} — diffusion timesteps
+<strong>Knob 2:</strong> target ∈ {eps, x0} — prediction
+parameterisation</p>
+<p>This yields a 3×2 grid of <strong>6 runs</strong>, each training for
+1 epoch (468 gradient steps) with seed=42 on Apple MPS.</p>
+<h3 id="transformer-baseline">Transformer Baseline</h3>
+<p>600 training steps on a 6-sentence corpus about transformers. Config:
+temp=0.8, top_p=0.95, eval every 50 steps (13 data points). This
+confirms pipeline correctness for a second model family but is not the
+focus of the controlled experiment.</p>
+<hr />
+<h2 id="results">3. Results</h2>
+<h3 id="training-loss-dynamics">3.1 Training Loss Dynamics</h3>
+<p>The central finding is that <strong>eps and x0 respond to T in
+opposite directions:</strong></p>
+<table>
+<thead>
+<tr>
+<th>T</th>
+<th>eps final loss</th>
+<th>x0 final loss</th>
+<th>eps runtime</th>
+<th>x0 runtime</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>100</td>
+<td>0.1042</td>
+<td><strong>0.0258</strong></td>
+<td>42.7 s</td>
+<td>42.1 s</td>
+</tr>
+<tr>
+<td>200</td>
+<td>0.0886</td>
+<td>0.0503</td>
+<td>45.8 s</td>
+<td>47.3 s</td>
+</tr>
+<tr>
+<td>400</td>
+<td><strong>0.0594</strong></td>
+<td>0.1114</td>
+<td>53.4 s</td>
+<td>51.6 s</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>eps loss decreases with larger T</strong> (0.104 → 0.059).
+With more timesteps, each individual noise step is smaller, making
+per-step noise prediction smoother and easier to learn.</li>
+<li><strong>x0 loss increases with larger T</strong> (0.026 → 0.111).
+With more timesteps, the model is asked to reconstruct clean images from
+inputs at higher noise levels (larger t values), where x_t ≈ pure
+Gaussian noise.</li>
+</ul>
+<p>This inversion is visible in the training curve plots (see
+<code>training_curves.png</code> in the notebook § 4) and the final-loss
+heatmap (<code>final_loss_heatmap.png</code>, notebook § 4).</p>
+<h3 id="sample-quality">3.2 Sample Quality</h3>
+<p>Sample grids (see <code>sample_grid_all_runs.png</code>, notebook §
+5, 8×8 per run) show:</p>
+<ul>
+<li><strong>T=100, eps:</strong> Coarse, noisy shapes — the network has
+too few denoising steps and each step requires a large correction.</li>
+<li><strong>T=100, x0:</strong> Faint digit outlines visible — with low
+noise, x₀ still carries substantial signal.</li>
+<li><strong>T=200:</strong> Intermediate quality for both targets; this
+is the “sweet spot” for 1-epoch training.</li>
+<li><strong>T=400, eps:</strong> Best eps samples — many small steps,
+each prediction is smooth.</li>
+<li><strong>T=400, x0:</strong> Blurry/degraded — the prediction task is
+too hard from heavily corrupted inputs.</li>
+</ul>
+<p>All samples are partially formed (blob-like digits) due to the
+1-epoch constraint, which is a known confound acknowledged in the
+limitations.</p>
+<h3 id="runtime">3.3 Runtime</h3>
+<p>Training time scales approximately linearly with T: 40–48s (T=100) →
+50s (T=400), a ~25% increase. The eps vs x0 choice does not
+significantly affect runtime. Total wall-clock time for all 6 diffusion
+runs: ~4.5 minutes.</p>
+<h3 id="transformer-baseline-1">3.4 Transformer Baseline</h3>
+<ul>
+<li>Train loss: 3.426 → 0.054 in 600 steps (sharp descent, 13 eval
+points).</li>
+<li>Val loss: 3.426 → 0.055 (nearly identical to train throughout, gap
+&lt; 0.005).</li>
+<li>Sample output: garbled fragments (“Transformers replace rge +
+rTresitanlad stabilize training.”).</li>
+<li>Runtime: 24.8s on Apple MPS.</li>
+</ul>
+<p>The near-identical train/val loss reveals pure memorisation on the
+tiny 330-character corpus. With 600 steps (vs the initial 300), loss
+drops further to 0.054 but sample quality does not improve — the model
+has fully memorised the data but cannot compose novel sequences. The
+training curve (see <code>transformer_loss_curve.png</code>) shows
+smooth exponential decay with no train/val divergence.</p>
+<hr />
+<h2 id="failure-modes-limitations">4. Failure Modes &amp;
+Limitations</h2>
+<h3 id="failure-mode-1-t400-x0-loss-inversion">Failure Mode 1: T=400 +
+x0 — Loss Inversion</h3>
+<p><strong>Evidence:</strong> x0 loss at T=400 (0.111) is <em>worse</em>
+than at T=100 (0.026) — the trend inverts relative to eps.</p>
+<p><strong>Mechanism:</strong> The linear noise schedule (β₁=0.0001 →
+β₂=0.02) with T=400 means that at large timestep values t, x_t ≈ pure
+Gaussian noise. Predicting the clean image x₀ from near-pure noise is an
+ill-posed regression problem. The network cannot learn a reliable
+mapping in 468 gradient steps.</p>
+<p><strong>Implication:</strong> The x0 parameterisation is inherently
+more sensitive to T than eps. Practitioners using x0 with large T should
+either (a) use a cosine schedule to keep signal-to-noise ratio higher,
+or (b) train for significantly more epochs.</p>
+<h3 id="failure-mode-2-under-training-artifacts-all-runs">Failure Mode
+2: Under-training Artifacts (All Runs)</h3>
+<p><strong>Evidence:</strong> All 6 sample grids show blob-like shapes
+rather than sharp digits.</p>
+<p><strong>Cause:</strong> 1 epoch = 468 steps over 60,000 images. Each
+image is seen only once. The UNet has not learned fine-grained denoising
+at all noise levels.</p>
+<p><strong>Mitigation:</strong> Running 5–10 epochs typically produces
+recognisable MNIST digits. The 1-epoch constraint was chosen for
+speed/scope but must be acknowledged as a confound.</p>
+<h3 id="failure-mode-3-transformer-memorisation">Failure Mode 3:
+Transformer Memorisation</h3>
+<p><strong>Evidence:</strong> Train ≈ val loss throughout 600 steps (gap
+&lt; 0.005); sample output is garbled mixed fragments even at
+loss=0.054.</p>
+<p><strong>Cause:</strong> The training corpus is only ~330 characters.
+The model memorises token co-occurrences but cannot compose unseen
+sequences. Temperature-based sampling exposes the lack of
+generalisation.</p>
+<h3 id="limitations">Limitations</h3>
+<ul>
+<li>All results are from 1-epoch training; the T × target interaction
+may differ qualitatively at convergence.</li>
+<li>The linear β schedule was held fixed; a cosine schedule could shift
+the optimal T for x0.</li>
+<li>The Transformer experiment serves as a pipeline check, not a deep
+behavioural study (corpus too small).</li>
+</ul>
+<hr />
+<h2 id="conclusions">5. Conclusions</h2>
+<ol type="1">
+<li><p><strong>eps and x0 respond to T in opposite directions</strong> —
+this is the key finding. eps benefits from larger T (smoother per-step
+task), while x0 degrades (harder regression from noisier
+inputs).</p></li>
+<li><p><strong>T=200 is the sweet spot for 1-epoch training</strong>,
+balancing loss magnitude for both targets.</p></li>
+<li><p><strong>Low per-step loss does not guarantee good
+samples.</strong> T=100 x0 achieves the lowest raw loss (0.026) but does
+not produce the best visual samples — accumulated error over too few
+denoising steps still degrades quality.</p></li>
+<li><p><strong>Runtime scales linearly with T</strong> (~25% increase
+from T=100 to T=400) without proportional quality gains at 1
+epoch.</p></li>
+<li><p><strong>The x0 parameterisation is more fragile</strong> than eps
+under limited training: it requires more careful schedule tuning or more
+training epochs when T is large.</p></li>
+<li><p><strong>Next step:</strong> Rerun at 5 epochs to separate
+T×target effects from under-training confounds; test a cosine noise
+schedule; evaluate Transformer decoding knobs on a larger
+corpus.</p></li>
+</ol>
+<hr />
+<h2 id="reproducibility">Reproducibility</h2>
+<p>All experiments can be reproduced from the repo root with the
+commands listed in <code>README.md</code>. Seed is fixed at 42 for all
+diffusion runs. The transformer uses seed 0 (default). Total wall-clock
+time for all experiments: ~7 minutes on Apple MPS (M-series). Pre-run
+outputs are saved under <code>./untrack/outputs/final/</code>. The
+analysis notebook
+(<code>final/analysis/final_project_analysis_template.ipynb</code>)
+contains all cells pre-executed with embedded figures.</p>
+<hr />
+</body>
+</html>

@@ -96,3 +96,4 @@ All diffusion runs use `--seed 42` for reproducibility.
 ## Analysis
 
 Open `analysis/final_project_analysis_template.ipynb` — all cells are pre-executed with outputs.
+Our report is shown in SUMMARY_REPORT.md
