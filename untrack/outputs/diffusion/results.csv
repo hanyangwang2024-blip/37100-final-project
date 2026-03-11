@@ -1,0 +1,7 @@
+run_dir,T,target
+final/untrack/outputs/diffusion/ds-mnist_T-100_target-eps_b2-0.02_ch-64,100,eps
+final/untrack/outputs/diffusion/ds-mnist_T-100_target-x0_b2-0.02_ch-64,100,x0
+final/untrack/outputs/diffusion/ds-mnist_T-200_target-eps_b2-0.02_ch-64,200,eps
+final/untrack/outputs/diffusion/ds-mnist_T-200_target-x0_b2-0.02_ch-64,200,x0
+final/untrack/outputs/diffusion/ds-mnist_T-400_target-eps_b2-0.02_ch-64,400,eps
+final/untrack/outputs/diffusion/ds-mnist_T-400_target-x0_b2-0.02_ch-64,400,x0

@@ -1,0 +1,5 @@
+{
+  "seconds": 11.14,
+  "device": "mps",
+  "run_dir": "final/untrack/outputs/transformer/bsz-64_steps-600_dm-128_nh-4_nl-2_temp-0.8_topP-0.95"
+}
